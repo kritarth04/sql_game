@@ -325,6 +325,54 @@
       color: #6ee7b7;
     }
 
+    .cloud-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      color: var(--text-soft);
+      transition: all 0.2s ease;
+    }
+    .cloud-pill:hover {
+      filter: brightness(1.12);
+    }
+    .cloud-pill.status-synced {
+      background: var(--emerald-soft);
+      border-color: rgba(16, 185, 129, 0.6);
+      color: #6ee7b7;
+    }
+    .cloud-pill.status-syncing {
+      background: var(--sky-soft);
+      border-color: rgba(56, 189, 248, 0.6);
+      color: #7dd3fc;
+    }
+    .cloud-pill.status-error {
+      background: var(--rose-soft);
+      border-color: rgba(244, 63, 94, 0.65);
+      color: #fda4af;
+    }
+
+    .gist-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 9px 11px;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .gist-input:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
     /* Card Component */
     .card {
       background: var(--bg-card);
@@ -1103,8 +1151,8 @@
         <button type="button" class="btn btn-emerald-soft" onclick="openQADiagnostics()">
           🧪 Run QA Diagnostics
         </button>
-        <button type="button" class="btn btn-sky-soft" onclick="openSyncModal()">
-          🔄 Sync &amp; Backup
+        <button type="button" id="cloudStatusPill" class="cloud-pill" onclick="openSyncModal()" title="Click to configure automatic GitHub Gist cross-device sync or local backup">
+          💾 Local Only
         </button>
         <span id="saveStatusBadge" class="save-badge" title="Progress is automatically saved to localStorage">
           💾 <span id="saveStatusText">Saved</span>
@@ -1292,44 +1340,106 @@
   </main>
 
   <!-- =========================================================================
-       MODULE REPORT MODAL
+       GITHUB GIST AUTO-SYNC & BACKUP MODAL
        ========================================================================= -->
-  <div id="moduleReportModal" class="modal-backdrop hidden">
-    <div class="modal-box">
+  <div id="syncModal" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width:660px;">
       <div class="modal-header">
         <div>
-          <span class="pill-tag pill-indigo">Module Performance Report</span>
-          <h3 id="reportModuleTitle" style="margin:6px 0 0 0; font-size:18px; font-weight:800;">Module Summary</h3>
+          <h3 style="margin:0; font-size:17px; font-weight:800;">☁️ GitHub Gist Auto-Sync &amp; Backup</h3>
+          <p style="margin:4px 0 0 0; font-size:11px; color:var(--text-muted);">Automatically sync your score, solved questions, and SQL history across all devices using a private GitHub Gist.</p>
         </div>
-        <button type="button" class="close-x" onclick="closeModuleReport()">&times;</button>
+        <button type="button" class="close-x" onclick="closeSyncModal()">&times;</button>
       </div>
       <div class="modal-body scroll-area">
-        <div class="stats-grid">
+        <div class="stats-grid" style="margin-bottom:14px;">
           <div class="stat-box">
-            <div style="font-size:11px; color:var(--text-muted);">Answered</div>
-            <div id="repAnswered" class="stat-val">0 / 10</div>
+            <div style="font-size:11px; color:var(--text-muted);">Saved Score</div>
+            <div id="syncSummaryScore" class="stat-val" style="color:#fbbf24; font-size:18px;">0</div>
           </div>
-          <div class="stat-box emerald">
-            <div style="font-size:11px; color:#6ee7b7;">Correct</div>
-            <div id="repCorrect" class="stat-val" style="color:#34d399;">0</div>
+          <div class="stat-box">
+            <div style="font-size:11px; color:var(--text-muted);">Answered Qs</div>
+            <div id="syncSummaryAnswered" class="stat-val" style="color:#34d399; font-size:18px;">0</div>
           </div>
-          <div class="stat-box rose">
-            <div style="font-size:11px; color:#fda4af;">Wrong</div>
-            <div id="repWrong" class="stat-val" style="color:#fb7185;">0</div>
-          </div>
-          <div class="stat-box indigo">
-            <div style="font-size:11px; color:#a5b4fc;">Accuracy</div>
-            <div id="repAccuracy" class="stat-val" style="color:#818cf8;">0%</div>
+          <div class="stat-box">
+            <div style="font-size:11px; color:var(--text-muted);">Saved Queries</div>
+            <div id="syncSummaryQueries" class="stat-val" style="color:#38bdf8; font-size:18px;">0</div>
           </div>
         </div>
 
-        <h4 style="margin:0 0 10px 0; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Question Breakdown &amp; Quick Retry</h4>
-        <div id="reportQuestionsList"></div>
+        <!-- GitHub Gist Auto-Sync Configuration -->
+        <div class="sync-card" style="border-color:rgba(99,102,241,0.5);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
+            <strong style="color:#a5b4fc; font-size:13px;">☁️ Automatic GitHub Gist Sync</strong>
+            <span id="gistModalBadge" class="pill-tag pill-neutral">Local Only</span>
+          </div>
 
-        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
-          <span style="font-size:12px; color:var(--text-muted);">Spend 1 Retry Point next to any missed question to re-attempt it.</span>
-          <button type="button" id="nextModuleBtn" class="btn btn-primary" onclick="goToNextModule()">Next Module →</button>
+          <div style="font-size:11px; color:var(--text-soft); background:rgba(15,23,42,0.8); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:12px; line-height:1.55;">
+            <strong style="color:#7dd3fc;">Quick Setup (1 minute):</strong><br>
+            1. Open GitHub → <strong>Settings → Developer settings → Personal access tokens → Tokens (classic)</strong>.<br>
+            2. Click <strong>Generate new token (classic)</strong>, check <strong>ONLY</strong> the <code class="code-font" style="color:#6ee7b7;">gist</code> scope, and copy the token.<br>
+            3. <strong>First device:</strong> Paste your token below, leave <em>Gist ID</em> blank, and click <strong>Connect &amp; Create Gist</strong>.<br>
+            4. <strong>Second device:</strong> Paste the same token + the generated <em>Gist ID</em> and click <strong>Connect &amp; Sync</strong>.
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <label for="gistTokenInput" style="display:block; font-size:11px; font-weight:700; color:var(--text-soft); margin-bottom:5px;">
+              GitHub Personal Access Token (stored locally on this device only):
+            </label>
+            <input id="gistTokenInput" type="password" class="gist-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <label for="gistIdInput" style="display:block; font-size:11px; font-weight:700; color:var(--text-soft); margin-bottom:5px;">
+              Gist ID (leave blank on your first device to auto-create a private Gist):
+            </label>
+            <div style="display:flex; gap:8px;">
+              <input id="gistIdInput" type="text" class="gist-input" placeholder="Optional — auto-filled after creation" autocomplete="off" />
+              <button type="button" id="copyGistIdBtn" class="btn btn-sm hidden" onclick="copyGistId()" title="Copy Gist ID for your other device">📋 Copy ID</button>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <button type="button" id="gistConnectBtn" class="btn btn-primary" onclick="connectGitHubGist()">☁️ Connect &amp; Sync Gist</button>
+            <button type="button" id="gistSyncNowBtn" class="btn btn-emerald hidden" onclick="syncNowWithGist()">🔄 Sync Now</button>
+            <button type="button" id="gistDisconnectBtn" class="btn btn-sm hidden" style="color:#fda4af;" onclick="disconnectGitHubGist()">Disconnect Gist</button>
+          </div>
+
+          <div id="gistModalStatus" style="margin-top:10px; font-size:11px; color:var(--text-muted);" class="code-font"></div>
         </div>
+
+        <!-- Collapsible Local JSON Backup & Reset Section -->
+        <details class="sync-card" style="cursor:pointer;">
+          <summary style="font-weight:700; font-size:13px; color:#7dd3fc; outline:none;">
+            📦 Local JSON Backup &amp; Reset Options
+          </summary>
+          <div style="margin-top:12px; cursor:default;">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+              <button type="button" class="btn btn-sm btn-sky-soft" onclick="downloadBackupJSON()">⬇ Download Backup (.json)</button>
+              <label class="btn btn-sm" style="cursor:pointer;">
+                ⬆ Upload Backup (.json)
+                <input id="backupFileInput" type="file" accept=".json,application/json" onchange="uploadBackupJSON(event)" class="hidden" />
+              </label>
+            </div>
+
+            <div class="sync-card danger" style="margin-bottom:0;">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+                <div>
+                  <strong style="color:#fda4af; font-size:12px;">Reset All Saved Progress</strong>
+                  <div style="font-size:11px; color:var(--text-muted);">Erases localStorage, score, retry points, answers, and query history.</div>
+                </div>
+                <button type="button" id="resetInitBtn" class="btn btn-sm btn-rose" onclick="showResetConfirmBox()">🗑 Reset Progress</button>
+              </div>
+              <div id="resetConfirmBox" class="hidden" style="margin-top:12px; padding:10px; border-radius:8px; background:rgba(136,19,55,0.45); border:1px solid #f43f5e; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+                <span style="font-size:12px; font-weight:700; color:#fecdd3;">Confirm permanent erase of all saved progress?</span>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="btn btn-sm" onclick="hideResetConfirmBox()">Cancel</button>
+                  <button type="button" class="btn btn-sm btn-rose" onclick="confirmResetAllProgress()">Yes, Erase Everything</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   </div>
@@ -2374,6 +2484,8 @@
        3. APPLICATION STATE & BULLETPROOF LOCALSTORAGE PERSISTENCE (v2)
        ========================================================================= */
     const STORAGE_KEY = 'sql_mcq_game_state_v2';
+    const GIST_CREDS_KEY = 'sql_mcq_gist_creds_v1';
+    const GIST_FILENAME = 'sql_mcq_progress.json';
 
     let currentModuleIdx = 0;
     let currentQuestionIdx = 0;
@@ -2383,11 +2495,14 @@
     let activeFrontTable = 'EmployeeDetail';
     let isFrontTableCollapsed = false;
     let queryHistory = [];
+    let lastLocalUpdatedAt = null;
     const userAnswers = {};
     const rewardedQuestions = new Set();
 
     let saveTimer = null;
     let toastTimer = null;
+    let gistPushTimer = null;
+    let isGistBusy = false;
 
     function escapeHtml(str) {
       return String(str)
@@ -2410,6 +2525,8 @@
     }
 
     function buildStatePayload() {
+      const nowIso = new Date().toISOString();
+      lastLocalUpdatedAt = nowIso;
       return {
         version: 2,
         score: totalScore,
@@ -2420,13 +2537,15 @@
         rewardedQuestions: Array.from(rewardedQuestions),
         activeDialect: activeDialect,
         queryHistory: queryHistory.slice(0, 50),
-        savedAt: new Date().toISOString()
+        updatedAt: nowIso,
+        savedAt: nowIso
       };
     }
 
-    function saveGameState() {
+    function saveGameState(skipCloudPush) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(buildStatePayload()));
+        const payload = buildStatePayload();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
         const badge = document.getElementById('saveStatusBadge');
         const txt = document.getElementById('saveStatusText');
         if (badge && txt) {
@@ -2437,6 +2556,9 @@
             badge.classList.remove('saved-flash');
             txt.textContent = 'Saved';
           }, 1300);
+        }
+        if (!skipCloudPush) {
+          scheduleGistAutoPush();
         }
       } catch (e) {
         // Storage quota or private mode; fail gracefully
@@ -2495,6 +2617,8 @@
       } else {
         queryHistory = [];
       }
+
+      lastLocalUpdatedAt = data.updatedAt || data.savedAt || null;
     }
 
     function loadGameState() {
@@ -3543,54 +3667,304 @@
     }
 
     /* =========================================================================
-       9. CROSS-DEVICE SYNC & BACKUP MODAL
+       9. GITHUB GIST AUTO-SYNC & BACKUP MODAL
        ========================================================================= */
+    function loadGistCreds() {
+      try {
+        const raw = localStorage.getItem(GIST_CREDS_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.token && parsed.gistId) return parsed;
+      } catch (e) {}
+      return null;
+    }
+
+    function saveGistCreds(token, gistId) {
+      try {
+        localStorage.setItem(GIST_CREDS_KEY, JSON.stringify({ token: token, gistId: gistId }));
+      } catch (e) {}
+    }
+
+    function clearGistCreds() {
+      try {
+        localStorage.removeItem(GIST_CREDS_KEY);
+      } catch (e) {}
+    }
+
+    function setCloudStatus(mode, message) {
+      const pill = document.getElementById('cloudStatusPill');
+      const modalBadge = document.getElementById('gistModalBadge');
+      const modalStatus = document.getElementById('gistModalStatus');
+
+      if (pill) {
+        pill.className = 'cloud-pill';
+        if (mode === 'synced') {
+          pill.classList.add('status-synced');
+          pill.textContent = '☁️ Gist Synced';
+        } else if (mode === 'syncing') {
+          pill.classList.add('status-syncing');
+          pill.textContent = '☁️ Syncing...';
+        } else if (mode === 'error') {
+          pill.classList.add('status-error');
+          pill.textContent = '⚠️ Sync Error';
+        } else {
+          pill.textContent = '💾 Local Only';
+        }
+      }
+
+      if (modalBadge) {
+        if (mode === 'synced') {
+          modalBadge.className = 'pill-tag pill-emerald';
+          modalBadge.textContent = '☁️ Gist Synced';
+        } else if (mode === 'syncing') {
+          modalBadge.className = 'pill-tag pill-indigo';
+          modalBadge.textContent = '☁️ Syncing...';
+        } else if (mode === 'error') {
+          modalBadge.className = 'pill-tag pill-rose';
+          modalBadge.textContent = '⚠️ Sync Error';
+        } else {
+          modalBadge.className = 'pill-tag pill-neutral';
+          modalBadge.textContent = 'Local Only';
+        }
+      }
+
+      if (modalStatus && typeof message === 'string') {
+        modalStatus.textContent = message;
+      }
+    }
+
+    function scheduleGistAutoPush() {
+      const creds = loadGistCreds();
+      if (!creds) return;
+      clearTimeout(gistPushTimer);
+      gistPushTimer = setTimeout(function() {
+        pushStateToGist(true);
+      }, 1500);
+    }
+
+    async function pushStateToGist(silent) {
+      const creds = loadGistCreds();
+      if (!creds || isGistBusy) return false;
+      isGistBusy = true;
+      setCloudStatus('syncing', 'Pushing latest progress to GitHub Gist...');
+
+      try {
+        const payload = buildStatePayload();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+        const body = {
+          files: {}
+        };
+        body.files[GIST_FILENAME] = { content: JSON.stringify(payload, null, 2) };
+
+        const resp = await fetch('https://api.github.com/gists/' + encodeURIComponent(creds.gistId), {
+          method: 'PATCH',
+          headers: {
+            'Authorization': 'token ' + creds.token,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!resp.ok) {
+          throw new Error('GitHub API HTTP ' + resp.status);
+        }
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setCloudStatus('synced', 'Last synced to Gist at ' + timeStr);
+        if (!silent) showToast('☁️ Progress pushed to GitHub Gist.');
+        return true;
+      } catch (err) {
+        setCloudStatus('error', 'Auto-push failed: ' + (err.message || 'Network error'));
+        if (!silent) showToast('Gist sync error: ' + (err.message || 'Check token/network'), 'error');
+        return false;
+      } finally {
+        isGistBusy = false;
+      }
+    }
+
+    async function pullStateFromGist(silent) {
+      const creds = loadGistCreds();
+      if (!creds || isGistBusy) return false;
+      isGistBusy = true;
+      setCloudStatus('syncing', 'Checking GitHub Gist for newer progress...');
+
+      try {
+        const resp = await fetch('https://api.github.com/gists/' + encodeURIComponent(creds.gistId), {
+          method: 'GET',
+          headers: {
+            'Authorization': 'token ' + creds.token,
+            'Accept': 'application/vnd.github+json'
+          }
+        });
+
+        if (!resp.ok) {
+          throw new Error('GitHub API HTTP ' + resp.status);
+        }
+
+        const gistData = await resp.json();
+        const fileObj = gistData.files && gistData.files[GIST_FILENAME];
+        if (!fileObj || !fileObj.content) {
+          isGistBusy = false;
+          return await pushStateToGist(silent);
+        }
+
+        const remoteState = JSON.parse(fileObj.content);
+        const remoteTime = new Date(remoteState.updatedAt || remoteState.savedAt || 0).getTime();
+        const localTime = new Date(lastLocalUpdatedAt || 0).getTime();
+
+        if (remoteTime > localTime) {
+          applyValidatedState(remoteState);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(remoteState));
+          onDialectChange(false);
+          renderQueryHistory();
+          renderCurrentView();
+          setCloudStatus('synced', 'Pulled newer progress from GitHub Gist (' + new Date(remoteTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ')');
+          showToast('☁️ Progress synced from GitHub Gist');
+        } else if (localTime > remoteTime) {
+          isGistBusy = false;
+          return await pushStateToGist(silent);
+        } else {
+          setCloudStatus('synced', 'Up to date with GitHub Gist.');
+          if (!silent) showToast('☁️ Already up to date with GitHub Gist.');
+        }
+        return true;
+      } catch (err) {
+        setCloudStatus('error', 'Sync failed: ' + (err.message || 'Network/Auth error'));
+        if (!silent) showToast('Gist sync error: ' + (err.message || 'Check token & Gist ID'), 'error');
+        return false;
+      } finally {
+        isGistBusy = false;
+      }
+    }
+
+    async function connectGitHubGist() {
+      const token = document.getElementById('gistTokenInput').value.trim();
+      const gistId = document.getElementById('gistIdInput').value.trim();
+
+      if (!token) {
+        showToast('Please paste your GitHub Personal Access Token first.', 'error');
+        return;
+      }
+
+      setCloudStatus('syncing', gistId ? 'Verifying Gist ID & syncing...' : 'Creating private GitHub Gist...');
+
+      if (!gistId) {
+        // Smart Create: POST /gists
+        try {
+          const payload = buildStatePayload();
+          const body = {
+            description: 'SQL Server MCQ Game Progress',
+            public: false,
+            files: {}
+          };
+          body.files[GIST_FILENAME] = { content: JSON.stringify(payload, null, 2) };
+
+          const resp = await fetch('https://api.github.com/gists', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'token ' + token,
+              'Accept': 'application/vnd.github+json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+          });
+
+          if (!resp.ok) {
+            throw new Error('GitHub API HTTP ' + resp.status + ' (verify token has "gist" scope)');
+          }
+
+          const created = await resp.json();
+          saveGistCreds(token, created.id);
+          document.getElementById('gistIdInput').value = created.id;
+          refreshSyncModalButtons();
+          setCloudStatus('synced', 'Private Gist created! Copy the Gist ID above for your other devices.');
+          showToast('☁️ Private Gist created & synced!');
+        } catch (err) {
+          setCloudStatus('error', 'Create failed: ' + (err.message || 'Check token'));
+          showToast('Failed to create Gist: ' + (err.message || 'Error'), 'error');
+        }
+      } else {
+        // Connect to existing Gist ID and pull/merge
+        saveGistCreds(token, gistId);
+        const ok = await pullStateFromGist(false);
+        if (ok) {
+          refreshSyncModalButtons();
+        } else {
+          clearGistCreds();
+          refreshSyncModalButtons();
+        }
+      }
+    }
+
+    async function syncNowWithGist() {
+      await pullStateFromGist(false);
+    }
+
+    function disconnectGitHubGist() {
+      clearGistCreds();
+      clearTimeout(gistPushTimer);
+      document.getElementById('gistTokenInput').value = '';
+      document.getElementById('gistIdInput').value = '';
+      refreshSyncModalButtons();
+      setCloudStatus('local', 'Disconnected from GitHub Gist. Progress remains saved locally.');
+      showToast('Disconnected GitHub Gist on this device.');
+    }
+
+    function copyGistId() {
+      const box = document.getElementById('gistIdInput');
+      if (!box || !box.value.trim()) return;
+      box.select();
+      box.setSelectionRange(0, 99999);
+      try {
+        document.execCommand('copy');
+        showToast('✓ Gist ID copied! Paste it on your second device.');
+      } catch (e) {
+        showToast('Copy the Gist ID manually from the input box.', 'error');
+      }
+    }
+
+    function refreshSyncModalButtons() {
+      const creds = loadGistCreds();
+      const copyBtn = document.getElementById('copyGistIdBtn');
+      const syncNowBtn = document.getElementById('gistSyncNowBtn');
+      const discBtn = document.getElementById('gistDisconnectBtn');
+      const connBtn = document.getElementById('gistConnectBtn');
+
+      if (creds) {
+        copyBtn.classList.remove('hidden');
+        syncNowBtn.classList.remove('hidden');
+        discBtn.classList.remove('hidden');
+        connBtn.textContent = 'Update Credentials';
+      } else {
+        copyBtn.classList.add('hidden');
+        syncNowBtn.classList.add('hidden');
+        discBtn.classList.add('hidden');
+        connBtn.textContent = '☁️ Connect & Sync Gist';
+      }
+    }
+
     function openSyncModal() {
       hideResetConfirmBox();
       document.getElementById('syncSummaryScore').textContent = totalScore;
       document.getElementById('syncSummaryAnswered').textContent = Object.keys(userAnswers).length;
       document.getElementById('syncSummaryQueries').textContent = queryHistory.length;
 
-      const jsonStr = JSON.stringify(buildStatePayload());
-      document.getElementById('exportSyncCodeBox').value = btoa(unescape(encodeURIComponent(jsonStr)));
-      document.getElementById('importSyncCodeBox').value = '';
+      const creds = loadGistCreds();
+      if (creds) {
+        document.getElementById('gistTokenInput').value = creds.token;
+        document.getElementById('gistIdInput').value = creds.gistId;
+      } else {
+        document.getElementById('gistTokenInput').value = '';
+        document.getElementById('gistIdInput').value = '';
+      }
+      refreshSyncModalButtons();
       document.getElementById('syncModal').classList.remove('hidden');
     }
 
     function closeSyncModal() {
       document.getElementById('syncModal').classList.add('hidden');
-    }
-
-    function copySyncCode() {
-      const box = document.getElementById('exportSyncCodeBox');
-      box.select();
-      box.setSelectionRange(0, 99999);
-      try {
-        document.execCommand('copy');
-        showToast('✓ Sync Code copied! Paste it on your other device.');
-      } catch (e) {
-        showToast('Select and copy the code manually.', 'error');
-      }
-    }
-
-    function importFromSyncCode() {
-      const code = document.getElementById('importSyncCodeBox').value.trim();
-      if (!code) {
-        showToast('Please paste a Sync Code first.', 'error');
-        return;
-      }
-      try {
-        const parsed = JSON.parse(decodeURIComponent(escape(atob(code))));
-        applyValidatedState(parsed);
-        saveGameState();
-        onDialectChange(false);
-        renderQueryHistory();
-        renderCurrentView();
-        closeSyncModal();
-        showToast('✓ Synced! Score: ' + totalScore + ', Answered: ' + Object.keys(userAnswers).length);
-      } catch (e) {
-        showToast('Invalid Sync Code: ' + (e.message || 'decode failed'), 'error');
-      }
     }
 
     function downloadBackupJSON() {
@@ -3801,6 +4175,13 @@
 
       // Load AlaSQL asynchronously in background (non-blocking)
       loadAlaSQLAsync();
+
+      // Auto-Pull from GitHub Gist on page load if configured
+      if (loadGistCreds()) {
+        pullStateFromGist(true);
+      } else {
+        setCloudStatus('local');
+      }
     }
 
     document.addEventListener('DOMContentLoaded', initApp);
