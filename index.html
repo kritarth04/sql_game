@@ -1445,73 +1445,55 @@
   </div>
 
   <!-- =========================================================================
-       SYNC & BACKUP MODAL
+       MODULE REPORT MODAL
        ========================================================================= -->
-  <div id="syncModal" class="modal-backdrop hidden">
-    <div class="modal-box" style="max-width:640px;">
+  <div id="moduleReportModal" class="modal-backdrop hidden" onclick="if (event.target === this) closeModuleReport()">
+    <div class="modal-box" style="max-width:780px;">
       <div class="modal-header">
         <div>
-          <h3 style="margin:0; font-size:17px; font-weight:800;">🔄 Cross-Device Sync &amp; Local Backup</h3>
-          <p style="margin:4px 0 0 0; font-size:11px; color:var(--text-muted);">Auto-saved to this browser's localStorage. Copy a Sync Code or JSON file to move progress across devices.</p>
+          <span class="pill-tag pill-indigo">Module Performance Report</span>
+          <h3 id="reportModuleTitle" style="margin:6px 0 0 0; font-size:17px; font-weight:800;">Module Summary</h3>
         </div>
-        <button type="button" class="close-x" onclick="closeSyncModal()">&times;</button>
+        <button type="button" class="close-x" onclick="closeModuleReport()" aria-label="Close Module Report">&times;</button>
       </div>
       <div class="modal-body scroll-area">
-        <div class="stats-grid" style="margin-bottom:14px;">
-          <div class="stat-box">
-            <div style="font-size:11px; color:var(--text-muted);">Saved Score</div>
-            <div id="syncSummaryScore" class="stat-val" style="color:#fbbf24; font-size:18px;">0</div>
+        <div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));">
+          <div class="stat-box indigo">
+            <div style="font-size:11px; color:#a5b4fc;">Accuracy</div>
+            <div id="repAccuracy" class="stat-val" style="color:#818cf8;">0%</div>
+          </div>
+          <div class="stat-box emerald">
+            <div style="font-size:11px; color:#6ee7b7;">Correct</div>
+            <div id="repCorrect" class="stat-val" style="color:#34d399;">0</div>
+          </div>
+          <div class="stat-box rose">
+            <div style="font-size:11px; color:#fda4af;">Wrong</div>
+            <div id="repWrong" class="stat-val" style="color:#fb7185;">0</div>
           </div>
           <div class="stat-box">
-            <div style="font-size:11px; color:var(--text-muted);">Answered Qs</div>
-            <div id="syncSummaryAnswered" class="stat-val" style="color:#34d399; font-size:18px;">0</div>
+            <div style="font-size:11px; color:var(--text-muted);">Unanswered</div>
+            <div id="repUnanswered" class="stat-val" style="color:var(--text-soft);">0</div>
           </div>
           <div class="stat-box">
-            <div style="font-size:11px; color:var(--text-muted);">Saved Queries</div>
-            <div id="syncSummaryQueries" class="stat-val" style="color:#38bdf8; font-size:18px;">0</div>
+            <div style="font-size:11px; color:var(--text-muted);">Total Score</div>
+            <div id="repTotalScore" class="stat-val" style="color:#fbbf24;">0</div>
+          </div>
+          <div class="stat-box">
+            <div style="font-size:11px; color:#a5b4fc;">Retry Pts</div>
+            <div id="repRetryPoints" class="stat-val" style="color:#e0e7ff;">0</div>
           </div>
         </div>
 
-        <div class="sync-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
-            <strong style="color:#a5b4fc; font-size:13px;">1. Base64 Sync Code Transfer</strong>
-            <button type="button" class="btn btn-sm btn-primary" onclick="copySyncCode()">📋 Copy Sync Code</button>
-          </div>
-          <textarea id="exportSyncCodeBox" rows="3" readonly class="sync-textarea"></textarea>
-
-          <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
-            <label for="importSyncCodeBox" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Paste Sync Code from another device:</label>
-            <textarea id="importSyncCodeBox" rows="2" placeholder="Paste Base64 sync code here..." class="sync-textarea" style="color:#e2e8f0;"></textarea>
-            <button type="button" class="btn btn-sm btn-emerald" style="margin-top:8px;" onclick="importFromSyncCode()">✓ Import Sync Code</button>
-          </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
+          <strong style="font-size:12px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-soft);">Question Breakdown &amp; Retry Access</strong>
+          <span id="repAnswered" style="font-size:11px; color:var(--text-muted); font-weight:700;">0 / 0 Answered</span>
         </div>
 
-        <div class="sync-card">
-          <strong style="color:#7dd3fc; font-size:13px; display:block; margin-bottom:10px;">2. JSON Backup File</strong>
-          <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            <button type="button" class="btn btn-sm btn-sky-soft" onclick="downloadBackupJSON()">⬇ Download Backup (.json)</button>
-            <label class="btn btn-sm" style="cursor:pointer;">
-              ⬆ Upload Backup (.json)
-              <input id="backupFileInput" type="file" accept=".json,application/json" onchange="uploadBackupJSON(event)" class="hidden" />
-            </label>
-          </div>
-        </div>
+        <div id="reportQuestionsList"></div>
 
-        <div class="sync-card danger">
-          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
-            <div>
-              <strong style="color:#fda4af; font-size:13px;">3. Reset All Saved Progress</strong>
-              <div style="font-size:11px; color:var(--text-muted);">Erases localStorage, score, retry points, answers, and query history.</div>
-            </div>
-            <button type="button" id="resetInitBtn" class="btn btn-sm btn-rose" onclick="showResetConfirmBox()">🗑 Reset Progress</button>
-          </div>
-          <div id="resetConfirmBox" class="hidden" style="margin-top:12px; padding:10px; border-radius:8px; background:rgba(136,19,55,0.45); border:1px solid #f43f5e; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
-            <span style="font-size:12px; font-weight:700; color:#fecdd3;">Confirm permanent erase of all saved progress?</span>
-            <div style="display:flex; gap:8px;">
-              <button type="button" class="btn btn-sm" onclick="hideResetConfirmBox()">Cancel</button>
-              <button type="button" class="btn btn-sm btn-rose" onclick="confirmResetAllProgress()">Yes, Erase Everything</button>
-            </div>
-          </div>
+        <div class="action-bar" style="margin-top:14px;">
+          <button type="button" class="btn" onclick="closeModuleReport()">Close</button>
+          <button type="button" id="nextModuleBtn" class="btn btn-primary" onclick="goToNextModule()">Next Module →</button>
         </div>
       </div>
     </div>
@@ -2498,11 +2480,36 @@
     let lastLocalUpdatedAt = null;
     const userAnswers = {};
     const rewardedQuestions = new Set();
+    let optionOrders = {};
 
     let saveTimer = null;
     let toastTimer = null;
     let gistPushTimer = null;
     let isGistBusy = false;
+
+    function shuffleIndices(len) {
+      const arr = [];
+      for (let i = 0; i < len; i++) arr.push(i);
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+      }
+      return arr;
+    }
+
+    function getOptionOrder(key, optCount, forceReshuffle) {
+      const count = optCount || 4;
+      const existing = optionOrders[key];
+      const isValid = Array.isArray(existing) && existing.length === count &&
+        existing.every(function(n) { return typeof n === 'number' && n >= 0 && n < count; }) &&
+        new Set(existing).size === count;
+      if (!isValid || forceReshuffle) {
+        optionOrders[key] = shuffleIndices(count);
+      }
+      return optionOrders[key];
+    }
 
     function escapeHtml(str) {
       return String(str)
@@ -2535,6 +2542,7 @@
         currentQuestionIndex: currentQuestionIdx,
         answers: userAnswers,
         rewardedQuestions: Array.from(rewardedQuestions),
+        optionOrders: optionOrders,
         activeDialect: activeDialect,
         queryHistory: queryHistory.slice(0, 50),
         updatedAt: nowIso,
@@ -2595,6 +2603,16 @@
       } else {
         Object.keys(userAnswers).forEach(function(k) {
           if (userAnswers[k].isCorrect) rewardedQuestions.add(k);
+        });
+      }
+
+      optionOrders = {};
+      if (data.optionOrders && typeof data.optionOrders === 'object') {
+        Object.keys(data.optionOrders).forEach(function(k) {
+          const ord = data.optionOrders[k];
+          if (Array.isArray(ord) && ord.length === 4 && new Set(ord).size === 4) {
+            optionOrders[k] = ord.slice();
+          }
         });
       }
 
@@ -2813,27 +2831,33 @@
       const optContainer = document.getElementById('optionsContainer');
       optContainer.innerHTML = '';
       const letters = ['A', 'B', 'C', 'D'];
+      const order = getOptionOrder(key, q.options.length, false);
 
-      q.options.forEach(function(opt, oIdx) {
+      order.forEach(function(origIdx, displayIdx) {
+        const opt = q.options[origIdx];
         const btn = document.createElement('button');
         btn.type = 'button';
         let cls = 'option-btn';
         if (ans) {
           btn.disabled = true;
           if (opt.isCorrect) cls += ' opt-correct';
-          else if (ans.selectedIdx === oIdx) cls += ' opt-wrong';
+          else if (ans.selectedIdx === origIdx) cls += ' opt-wrong';
           else cls += ' opt-dim';
         } else {
-          btn.onclick = function() { selectOption(oIdx); };
+          btn.onclick = function() { selectOption(origIdx); };
         }
         btn.className = cls;
-        btn.innerHTML = '<span class="opt-letter">' + letters[oIdx] + '</span><span class="opt-text">' + escapeHtml(opt.text) + '</span>';
+        btn.innerHTML = '<span class="opt-letter">' + letters[displayIdx] + '</span><span class="opt-text">' + escapeHtml(opt.text) + '</span>';
         optContainer.appendChild(btn);
       });
 
       document.getElementById('prevBtn').disabled = currentQuestionIdx === 0;
       const nextBtn = document.getElementById('nextBtn');
-      nextBtn.textContent = (currentQuestionIdx === mod.questions.length - 1) ? 'Finish Module & View Report 📊' : 'Next Question →';
+      if (currentQuestionIdx === mod.questions.length - 1) {
+        nextBtn.textContent = '📊 Finish Module & Report';
+      } else {
+        nextBtn.textContent = 'Next Question →';
+      }
 
       const retryBtn = document.getElementById('retryBtn');
       if (ans && !ans.isCorrect) {
@@ -2861,13 +2885,14 @@
 
         const perOpt = document.getElementById('perOptionExplanations');
         perOpt.innerHTML = '';
-        q.options.forEach(function(opt, oIdx) {
-          const isPicked = ans.selectedIdx === oIdx;
+        order.forEach(function(origIdx, displayIdx) {
+          const opt = q.options[origIdx];
+          const isPicked = ans.selectedIdx === origIdx;
           const div = document.createElement('div');
           div.className = 'exp-option-item ' + (opt.isCorrect ? 'is-right' : (isPicked ? 'is-picked-wrong' : ''));
           const tag = opt.isCorrect
-            ? '<strong style="color:#34d399;">[Option ' + letters[oIdx] + ' • CORRECT]</strong>'
-            : '<strong style="color:#fb7185;">[Option ' + letters[oIdx] + ' • WHY WRONG]</strong>';
+            ? '<strong style="color:#34d399;">[Option ' + letters[displayIdx] + ' • CORRECT]</strong>'
+            : '<strong style="color:#fb7185;">[Option ' + letters[displayIdx] + ' • WHY WRONG]</strong>';
           const pickedBadge = isPicked ? ' <span class="pill-tag pill-neutral" style="font-size:10px; padding:1px 6px;">Your Choice</span>' : '';
           div.innerHTML = '<div style="margin-bottom:4px;">' + tag + pickedBadge + '</div><div>' + escapeHtml(opt.explanation) + '</div>';
           perOpt.appendChild(div);
@@ -2902,6 +2927,7 @@
       if (!ans || ans.isCorrect || retryPoints <= 0) return;
       retryPoints -= 1;
       delete userAnswers[key];
+      getOptionOrder(key, GAME_MODULES[currentModuleIdx].questions[currentQuestionIdx].options.length, true);
       saveGameState();
       renderCurrentView();
     }
@@ -2939,73 +2965,107 @@
        ========================================================================= */
     function openModuleReport() {
       const mod = GAME_MODULES[currentModuleIdx];
-      document.getElementById('reportModuleTitle').textContent = mod.badge + ': ' + mod.title;
+      if (!mod) return;
+
+      const modal = document.getElementById('moduleReportModal');
+      const titleEl = document.getElementById('reportModuleTitle');
+      const list = document.getElementById('reportQuestionsList');
+      if (!modal || !titleEl || !list) return;
+
+      titleEl.textContent = mod.badge + ': ' + mod.title;
 
       let answered = 0;
       let correct = 0;
       let wrong = 0;
-      const list = document.getElementById('reportQuestionsList');
+      let unanswered = 0;
       list.innerHTML = '';
 
+      const letters = ['A', 'B', 'C', 'D'];
+
       mod.questions.forEach(function(q, idx) {
-        const ans = userAnswers[getAnswerKey(currentModuleIdx, idx)];
+        const key = getAnswerKey(currentModuleIdx, idx);
+        const ans = userAnswers[key];
+        const order = getOptionOrder(key, q.options.length, false);
+        const correctOrigIdx = q.options.findIndex(function(o) { return o && o.isCorrect; });
+        const correctDisplayIdx = order.indexOf(correctOrigIdx);
+        const correctOpt = correctOrigIdx >= 0 ? q.options[correctOrigIdx] : null;
+        const pickedOrigIdx = (ans && typeof ans.selectedIdx === 'number') ? ans.selectedIdx : -1;
+        const pickedDisplayIdx = pickedOrigIdx >= 0 ? order.indexOf(pickedOrigIdx) : -1;
+        const pickedOpt = (pickedOrigIdx >= 0 && q.options[pickedOrigIdx]) ? q.options[pickedOrigIdx] : null;
+
         if (ans) {
           answered++;
           if (ans.isCorrect) correct++;
           else wrong++;
+        } else {
+          unanswered++;
         }
 
         const row = document.createElement('div');
         row.className = 'report-item';
 
-        let statusHtml = '<span class="pill-tag pill-neutral">Unanswered</span>';
+        let statusHtml = '<span class="pill-tag pill-neutral">⚪ Unanswered</span>';
         let actionHtml = '<button type="button" class="btn btn-sm btn-primary" onclick="jumpToQuestion(' + idx + ')">Attempt</button>';
+        let detailHtml = '';
 
         if (ans && ans.isCorrect) {
-          statusHtml = '<span class="pill-tag pill-emerald">✓ Correct</span>';
+          statusHtml = '<span class="pill-tag pill-emerald">✅ Correct</span>';
           actionHtml = '<button type="button" class="btn btn-sm" onclick="jumpToQuestion(' + idx + ')">Review</button>';
+          if (pickedOpt) {
+            detailHtml = '<div class="code-font" style="font-size:11px; color:#6ee7b7; margin-top:5px;">Your Answer (' + (letters[pickedDisplayIdx] || '?') + '): ' + escapeHtml(pickedOpt.text) + '</div>';
+          }
         } else if (ans && !ans.isCorrect) {
-          statusHtml = '<span class="pill-tag pill-rose">✗ Wrong</span>';
+          statusHtml = '<span class="pill-tag pill-rose">❌ Wrong</span>';
           if (retryPoints > 0) {
-            actionHtml = '<div style="display:flex; gap:6px;">' +
-              '<button type="button" class="btn btn-sm btn-amber" onclick="retryFromReport(' + idx + ')">🔄 Retry (-1 Pt)</button>' +
+            actionHtml = '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+              '<button type="button" class="btn btn-sm btn-amber" onclick="retryFromReport(' + idx + ')">🔄 Retry (-1 pt)</button>' +
               '<button type="button" class="btn btn-sm" onclick="jumpToQuestion(' + idx + ')">View</button></div>';
           } else {
             actionHtml = '<button type="button" class="btn btn-sm" onclick="jumpToQuestion(' + idx + ')">Review (0 Pts)</button>';
           }
+          detailHtml =
+            '<div class="code-font" style="font-size:11px; color:#fda4af; margin-top:5px;">Your Answer (' + (letters[pickedDisplayIdx] || '?') + '): ' + escapeHtml(pickedOpt ? pickedOpt.text : 'N/A') + '</div>' +
+            '<div class="code-font" style="font-size:11px; color:#6ee7b7; margin-top:2px;">Correct Answer (' + (letters[correctDisplayIdx] || '?') + '): ' + escapeHtml(correctOpt ? correctOpt.text : 'N/A') + '</div>';
         }
 
         row.innerHTML =
-          '<div style="flex:1; min-width:200px;">' +
-            '<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">' +
+          '<div style="flex:1; min-width:220px;">' +
+            '<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">' +
               '<strong class="code-font" style="color:#a5b4fc;">' + escapeHtml(q.qNum) + '</strong>' + statusHtml +
             '</div>' +
             '<div style="font-size:12px; color:var(--text-soft);">' + escapeHtml(q.prompt.split('\n')[0]) + '</div>' +
+            detailHtml +
           '</div>' +
           '<div>' + actionHtml + '</div>';
         list.appendChild(row);
       });
 
       const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
-      document.getElementById('repAnswered').textContent = answered + ' / ' + mod.questions.length;
+      document.getElementById('repAnswered').textContent = answered + ' / ' + mod.questions.length + ' Answered';
       document.getElementById('repCorrect').textContent = correct;
       document.getElementById('repWrong').textContent = wrong;
+      document.getElementById('repUnanswered').textContent = unanswered;
       document.getElementById('repAccuracy').textContent = accuracy + '%';
+      document.getElementById('repTotalScore').textContent = totalScore;
+      document.getElementById('repRetryPoints').textContent = retryPoints;
 
       const nextModBtn = document.getElementById('nextModuleBtn');
       if (currentModuleIdx < GAME_MODULES.length - 1) {
         nextModBtn.disabled = false;
-        nextModBtn.textContent = 'Continue to Module ' + (currentModuleIdx + 2) + ' →';
+        nextModBtn.textContent = 'Next Module (Module ' + (currentModuleIdx + 2) + ') →';
       } else {
         nextModBtn.disabled = true;
         nextModBtn.textContent = '🎉 Final Module Reached';
       }
 
-      document.getElementById('moduleReportModal').classList.remove('hidden');
+      modal.classList.remove('hidden');
+      const modalBody = modal.querySelector('.modal-body');
+      if (modalBody) modalBody.scrollTop = 0;
     }
 
     function closeModuleReport() {
-      document.getElementById('moduleReportModal').classList.add('hidden');
+      const modal = document.getElementById('moduleReportModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function jumpToQuestion(idx) {
@@ -3021,6 +3081,7 @@
       if (!ans || ans.isCorrect || retryPoints <= 0) return;
       retryPoints -= 1;
       delete userAnswers[key];
+      getOptionOrder(key, GAME_MODULES[currentModuleIdx].questions[idx].options.length, true);
       currentQuestionIdx = idx;
       saveGameState();
       closeModuleReport();
@@ -4027,6 +4088,7 @@
       queryHistory = [];
       Object.keys(userAnswers).forEach(function(k) { delete userAnswers[k]; });
       rewardedQuestions.clear();
+      optionOrders = {};
       document.getElementById('sqlDialectSelect').value = 'tsql';
       onDialectChange(false);
       renderQueryHistory();
@@ -4130,6 +4192,48 @@
         return 'CONVERT 106 ("15 Feb 2013"), LIKE "[a-p]%" (4 rows), FULL OUTER JOIN (10 rows), and Q106 (0 rows) all passed.';
       });
 
+      check('QA-07', 'Module Report Modal Renders Cleanly (Set-1) & Transitions to Set-2', function() {
+        const origMod = currentModuleIdx;
+        const origQ = currentQuestionIdx;
+        try {
+          currentModuleIdx = 0;
+          currentQuestionIdx = GAME_MODULES[0].questions.length - 1;
+          openModuleReport();
+          const modal = document.getElementById('moduleReportModal');
+          const items = document.querySelectorAll('#reportQuestionsList .report-item').length;
+          const accText = document.getElementById('repAccuracy').textContent;
+          if (!modal || modal.classList.contains('hidden')) throw new Error('Module Report modal did not open.');
+          if (items !== GAME_MODULES[0].questions.length) throw new Error('Expected ' + GAME_MODULES[0].questions.length + ' report rows, found ' + items);
+          if (accText.indexOf('NaN') !== -1) throw new Error('Accuracy produced NaN.');
+          goToNextModule();
+          if (currentModuleIdx !== 1 || currentQuestionIdx !== 0) throw new Error('Failed to transition from Set-1 to Set-2.');
+          if (!modal.classList.contains('hidden')) throw new Error('Modal did not close after Next Module.');
+          return 'Set-1 Module Report rendered all ' + items + ' questions (Accuracy: ' + accText + ') and transitioned cleanly to Set-2.';
+        } finally {
+          currentModuleIdx = origMod;
+          currentQuestionIdx = origQ;
+          closeModuleReport();
+          renderCurrentView();
+        }
+      });
+
+      check('QA-08', 'Randomized Answer Positions (Not Always Option A)', function() {
+        const dist = { A: 0, B: 0, C: 0, D: 0 };
+        const letters = ['A', 'B', 'C', 'D'];
+        GAME_MODULES.forEach(function(m, mIdx) {
+          m.questions.forEach(function(q, qIdx) {
+            const key = getAnswerKey(mIdx, qIdx);
+            const ord = getOptionOrder(key, q.options.length, false);
+            const correctOrigIdx = q.options.findIndex(function(o) { return o.isCorrect; });
+            const displayLetter = letters[ord.indexOf(correctOrigIdx)];
+            dist[displayLetter]++;
+          });
+        });
+        const nonA = dist.B + dist.C + dist.D;
+        if (nonA === 0) throw new Error('All correct answers are still on Option A.');
+        return 'Correct answer distribution across all questions: A=' + dist.A + ', B=' + dist.B + ', C=' + dist.C + ', D=' + dist.D + '.';
+      });
+
       const elapsed = (performance.now() - t0).toFixed(1);
       const passed = checks.filter(function(c) { return c.pass; }).length;
       document.getElementById('qaTotal').textContent = checks.length;
@@ -4182,6 +4286,14 @@
       } else {
         setCloudStatus('local');
       }
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeModuleReport();
+          closeSyncModal();
+          closeQADiagnostics();
+        }
+      });
     }
 
     document.addEventListener('DOMContentLoaded', initApp);
